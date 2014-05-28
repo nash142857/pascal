@@ -8,6 +8,3 @@
 #include <utility>
 #include <iostream>
 using namespace std;
-enum class type{
-	INTEGER, CHAR, REAL, STRING
-};
