@@ -1,0 +1,3 @@
+class const_record{
+
+};
