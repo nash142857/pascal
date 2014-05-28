@@ -1,3 +1,4 @@
+#pragma once
 #include "expr.h"
 enum class stmt_type {
 
@@ -44,5 +45,5 @@ class repeat_stmt: public base_stmt{
 
 };
 class case_stmt: public base_stmt{
-	
+
 }
