@@ -1,61 +1,88 @@
 %{
+    #include "const_record.h"
+    #include "common.h"
     #include "y.tab.h"
 
 %}
-CONST "const" 
-LP "(" 
-RP ")"
-LB "["
-RB "]" 
-DOT "." 
-COMMA ": "
-COLON ", " 
-MUL "*"	
-DIV "/" 
-PLUS "+"
-MINUS "-"
-ID [A-Za-z][A-Za-z0-9_]*
-GE ">="  
-GT ">"
-LE "<="
-LT "<" 
-EQUAL "=" 
 
-
-ASSIGN ":=" 
-INTEGER [0-9]+ 
-REAL [0-9]+"."[0-9]+ 
-CHAR "'"."'" 
-STRING "'".*"'" 
-SEMI ";" 
+const "const"
+var "var"
+lp "(" 
+rp ")"
+lb "["
+rb "]" 
+dot "." 
+comma ":"
+colon "," 
+mul "*"	
+div "/" 
+plus "+"
+minus "-"
+id [a-zA-Z][a-zA-Z0-9_]*
+ge ">="  
+gt ">"
+le "<="
+lt "<" 
+equal "="
+assign ":=" 
+integer [0-9]+ 
+real [0-9]+"."[0-9]+ 
+char "'"."'" 
+string "'".*"'" 
+semi ";" 
+program "Program"
+type "type"
+sys_type int|string|real|char
+record "record"
+end "end"
+array "array"
+df "of"
+begin "begin"
 %%
-CONST  {return CONST;}
-LP  {return LP;}
-RP  {return RP;}
-LB {return LB;}
-RB {return RB;}
-DOT  {return DOT;}
-COMMA  {return COMMA;}
-COLON  {return COLON;}
-MUL 	{return MUL;}
-DIV {return DIV;}
-PLUS  {return PLUS;}
-MINUS  {return MINUS;}
-ID  {return ID;}
-GE  {return GE;}
-GT  {return GT;}
-LE  {return LE;}
-LT  {return LT;}
-EQUAL {return EQUAL;}
-ASSIGN {return ASSIGN;}
-INTEGER  {return INTEGER;}
-REAL {return REAL;}
-CHAR  {return CHAR;}
-STRING  {return STRING;}
-SEMI {return SEMI;}
+
+{const}  {return CONST;}
+{program} {return PROGRAM;}
+{sys_type} {yylval._str = strdup(yytext);return SYS_TYPE;}
+{record} {return RECORD;}
+{end} {return END;}
+{begin} {return BEGINN;}
+{type} {return TYPE;}
+{df} {return DF;}
+{array} {return ARRAY;}
+{var} {return VAR;}
+{lp}  {return LP;}
+{rp}  {return RP;}
+{lb} {return LB;}
+{rb} {return RB;}
+{dot}  {return DOT;}
+{comma} {return COMMA;}
+{colon}  {return COLON;}
+{mul}	{return MUL;}
+{div} {return DIV;}
+{plus}  {return PLUS;}
+{minus}  {return MINUS;}
+{id} {yylval._str = strdup(yytext);return ID;}
+{ge}  {return GE;}
+{gt}  {return GT;}
+{le}  {return LE;}
+{lt}  {return LT;}
+{equal} {return EQUAL;}
+{assign} {return ASSIGN;}
+{integer}  {yylval._int = atoi(yytext);return INTEGER;}
+{real} {yylval._double = atof(yytext);return REAL;}
+{char}  {yylval._char = yytext[1];return CHAR;}
+{string}  {
+	int l = strlen(yytext);
+	yylval._str = new char[l - 2];
+	strncpy(yylval._str, yytext + 1, l - 2);return STRING;}
+{semi} {return SEMI;}
+\n {}
+\t {}
+" " {}
 . {return yytext[0];}
 
 %%
+
 int yywrap(){
 	return 1;
 }

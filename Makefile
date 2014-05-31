@@ -1,8 +1,10 @@
 LEX=flex
 YACC=yacc
 CC=g++ -std=c++11
-a.out:lex.yy.o y.tab.o
-	$(CC) lex.yy.o y.tab.o -o a.out
+a.out:common.o lex.yy.o y.tab.o 
+	$(CC) common.o lex.yy.o y.tab.o -o a.out
+common.o: 
+	$(CC) -c common.cpp
 lex.yy.o:lex.yy.c y.tab.h
 	$(CC) -c lex.yy.c
 y.tab.o:y.tab.c

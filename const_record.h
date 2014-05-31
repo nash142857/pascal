@@ -12,9 +12,12 @@ private:
 		return res;
 	}
 public:
-	bool insert(const string & id, type_ptr type, const vector <string> scope, value_set value){
+	bool insert(const string & id, 
+		type_ptr type, 
+		const vector <string> & scope, 
+		value_set value){
 		auto index = make_pair(id, concat(scope));
-		if(mp.find(index) == mp.end())
+		if(mp.find(index) != mp.end())
 			return false;
 		mp[index] = make_pair(type,value);
 		return true;
@@ -29,6 +32,15 @@ public:
 			return res;
 		}
 		return res;
+	}
+	void debug(){
+		for(auto i = mp.begin(); i != mp.end(); ++i){
+			cout << i -> first.first << " " << i -> second.first -> gettype() 
+			<< " " << value_set_to_str(i -> second.first, i -> second.second) << endl;
+		}
+	}
+	bool exist_check(){
+		
 	}
 };
 

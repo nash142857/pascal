@@ -36,7 +36,7 @@ public:
 	}
 };
 class while_stmt: public base_stmt{
-
+	
 };
 class for_stmt: public base_stmt{
 

@@ -1,7 +1,4 @@
-#pragma once
-#include "common.h"
-#include "type_value.h"
-class type_record{
+class var_record{
 private:
 	map < pair<string, string>, shared_ptr <base_type> > mp;
 	string concat(const vector <string> & vt){
@@ -19,11 +16,11 @@ public:
 		mp[make_pair(type_id, scope)] = type;
 		return true;
 	}
-	static shared_ptr <type_record> single(){
-		static shared_ptr <type_record> res;
+	static shared_ptr <var_record> single(){
+		static shared_ptr <var_record> res;
 		static bool flag = false;
 		if(!flag){
-			res.reset(new type_record());
+			res.reset(new var_record());
 			flag = true;
 			return res;
 		}

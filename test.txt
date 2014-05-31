@@ -1,0 +1,17 @@
+Program hello;
+const
+	a = 'a';
+	b = 'sad';
+	c = 123;
+	d = 123.23;
+
+type
+	c = int;
+	b = real;
+var 
+	a:int;
+	c:record
+		a:int;
+		b,d:real;
+	end;
+.	
