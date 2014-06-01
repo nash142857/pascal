@@ -1,42 +1,64 @@
 #pragma once
 #include "expr.h"
-enum class stmt_type {
-
-};
 class base_stmt{
 public:
-	virtual string gencode() = 0;
-	virtual void setcode(const string & _codestr){
+	string codestr;
+	base_stmt(){
+		codestr = UNDEFINE_EXPR;
+	}
+	virtual void gencode(){
+	}
+	void setcode(const string & _codestr){
 		codestr = _codestr;
 	}
 };
 class if_stmt:public base_stmt{
-private:
-	expression * judge;
-	base_stmt * lchild;
-	base_stmt * rchild;
 public:
-	string gencode();
+	shared_ptr <base_expr>  judge;
+	shared_ptr <base_stmt> lchild;
+	shared_ptr <base_stmt> rchild;
 };
 class goto_stmt:public base_stmt{
-private:
-	int addr;//address to go
 public:
-	string gencode();
+	int addr;//address to go
+
 };
 class assign_stmt:public base_stmt{
-private:
-	private codestr;
 public:
-	void setcode(const string & _codestr){
-		codestr = _codestr;
+	shared_ptr <base_expr> value;
+
+};
+class record_assign: public assign_stmt{
+public:
+	string id;
+	string member;
+	void gencode(){
+		int i = 2;
+		value -> gencode(i);
+		auto in = var_record::single() -> searchoffset(id, member);
+		codestr = "SW R2, " +  itoa(in.first) + "($SP)";
+		cout << codestr << endl;
 	}
-	void gencode(const string & _codestr){
-		return codestr;
+
+};
+class normal_assign: public assign_stmt{
+public:
+	string id;
+	void gencode(){
+		int i =  2;	
+		value -> gencode(i);
+		auto in = var_record::single() -> searchoffset(id);
+		codestr = "SW R2, " +  itoa(in.first) + "($SP)";
+		cout << codestr << endl;
 	}
 };
+class arr_assign: public assign_stmt{
+public:
+	shared_ptr <base_expr> index;
+	string id;
+};
+
 class while_stmt: public base_stmt{
-	
 };
 class for_stmt: public base_stmt{
 
@@ -46,4 +68,4 @@ class repeat_stmt: public base_stmt{
 };
 class case_stmt: public base_stmt{
 
-}
+};

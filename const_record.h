@@ -36,7 +36,7 @@ public:
 	void debug(){
 		for(auto i = mp.begin(); i != mp.end(); ++i){
 			cout << i -> first.first << " " << i -> second.first -> gettype() 
-			<< " " << value_set_to_str(i -> second.first, i -> second.second) << endl;
+			<< " " << value_set_to_str(i -> second.first -> gettype(), i -> second.second) << endl;
 		}
 	}
 	bool exist_check(){

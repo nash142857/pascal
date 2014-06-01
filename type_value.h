@@ -21,6 +21,18 @@ public:
 	int gettype(){
 		return type_id;
 	}
+	virtual int getsize(){
+		switch(type_id){
+		case INT_TYPE:
+			return 4;
+		case REAL_TYPE:
+			return 4;
+		case CHAR_TYPE:
+			return 1;
+		case STR_TYPE:
+			return 4;
+		}
+	}
 };
 typedef shared_ptr <base_type> type_ptr;
 union value_set{
@@ -34,18 +46,34 @@ typedef pair <type_ptr, value_set> key_value_tuple;
 class record_type: public base_type{
 public:
 	vector <pair <string, type_ptr> > vt;
-	void insert(const string & id, base_type);
 	record_type(){
 		type_id = RECORD_TYPE;
+	}
+	int getsize(){
+		int _size = 0;
+		for(int i = 0; i < vt.size(); ++i){
+			_size += vt[i].second -> getsize();
+		}
+		return _size;
+	}
+	pair <int, int> search(const string & id){
+		int off = 0;
+		for(int i = 0; i < vt.size(); ++i){
+			if(vt[i].first == id){
+				int type_id = vt[i].second -> gettype();
+				return make_pair(off, type_id);
+			}
+			else{
+				off += vt[i].second -> getsize();
+			}
+		}
+		return make_pair(-1, -1);
 	}
 };
 class arr_type: public base_type{
 public:
 	arr_type(){
 		type_id = ARR_TYPE;
-	}
-	bool checkindex(type_ptr type){
-
 	}
 	type_ptr index;
 	type_ptr nxt;
@@ -58,6 +86,9 @@ public:
 	}
 	key_value_tuple left;
 	key_value_tuple right;
+	int getsize(){
+		return left.second._double - right.second._double;
+	}
 private:
 };
 
@@ -67,12 +98,16 @@ public:
 		type_id = DISCRETE_TYPE;
 	}
 	vector <string> index;
+	int getsize(){
+		return index.size();
+	}
 private:
+
 };
 
 
-inline string value_set_to_str(type_ptr ptr, value_set value){
-	switch(ptr -> gettype()){
+inline string value_set_to_str(int type_id, value_set value){
+	switch(type_id){
 		case INT_TYPE:
 			return string(itoa(value._int));
 		case STR_TYPE:

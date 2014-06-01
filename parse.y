@@ -4,9 +4,14 @@
 	#include "const_record.h"
 	#include "type_record.h"
 	#include "var_record.h"
+	#include "stmt.h"
+	#include "expr.h"
+	#include "type_value.h"
 	#include <stdio.h>
 	#include <stdlib.h>
 	#include <ctype.h>	
+	#include "common.h"
+	vector <base_stmt *> vt;
 %}
 
 %union{
@@ -18,9 +23,11 @@
 	key_value_tuple * _tuple;
 	vector <string> * _vt;
 	vector < pair <string, type_ptr> > * _field;
+	base_expr * _expr;
+	base_stmt * _stmt;
 }
 
-%token  LP RP LB RB DOT COMMA COLON MUL DIV PLUS MINUS ID GE GT LE LT EQUAL ASSIGN INTEGER REAL CHAR STRING CONST SEMI VAR PROGRAM TYPE SYS_TYPE RECORD DF ARRAY BP END BEGINN MOD UNEQUAL DR NOT AND
+%token  LP RP LB RB DOT COMMA COLON MUL DIV PLUS MINUS ID GE GT LE LT EQUAL ASSIGN INTEGER REAL CHAR STRING CONST SEMI VAR PROGRAM TYPE SYS_TYPE RECORD DF ARRAY BP END BEGINN MOD UNEQUAL DR NOT AND 
 
 %type <_str> ID
 %type <_tuple> const_value
@@ -37,8 +44,13 @@
 %type <_field> field_decl_list
 %type <_vt> name_list
 %type <_field> var_decl
-%type <_str> term
-%type <_str> factor
+%type <_expr> term
+%type <_expr> factor
+%type <_expr> expr
+%type <_expr> expression
+%type <_stmt> assign_stmt
+%type <_stmt> non_label_stmt
+%type <_stmt> stmt
 %%
 program : program_head routine DOT
 program_head: PROGRAM ID SEMI
@@ -154,7 +166,6 @@ field_decl: name_list  COMMA type_decl SEMI{
 			type_ptr tmp($3);
 			$$ -> push_back(make_pair(*i, tmp));
 		}
-		delete $3;
 	}
 	;
 
@@ -177,6 +188,7 @@ simple_type_decl : SYS_TYPE
 			}
 	}
 	| LP name_list RP
+
 	{
 		discrete_type * tmp = new discrete_type();
 		for(auto i = $2 -> begin(); i != $2 -> end(); ++i){
@@ -246,39 +258,100 @@ var_decl: name_list COMMA type_decl SEMI{
 
 routine_body: BEGINN stmt_list END
 	;
-stmt_list: stmt_list stmt SEMI
-	|
+
+expression: expression GE expr{
+		binary_expr * tmp = new binary_expr();
+		tmp -> lchild.reset($1);
+		tmp -> rchild.reset($3);
+		tmp -> op = GE_TYPE;
+		$$ = tmp;
+	}
+	| expression GT expr{
+		binary_expr * tmp = new binary_expr();
+		tmp -> lchild.reset($1);
+		tmp -> rchild.reset($3);
+		tmp -> op = GT_TYPE;
+		$$ = tmp;
+	}
+	| expression LE expr{
+		binary_expr * tmp = new binary_expr();
+		tmp -> lchild.reset($1);
+		tmp -> rchild.reset($3);
+		tmp -> op = LE_TYPE;
+		$$ = tmp;
+	}
+	| expression LT expr{
+		binary_expr * tmp = new binary_expr();
+		tmp -> lchild.reset($1);
+		tmp -> rchild.reset($3);
+		tmp -> op = LT_TYPE;
+		$$ = tmp;	
+	}
+	| expression EQUAL expr{
+		binary_expr * tmp = new binary_expr();
+		tmp -> lchild.reset($1);
+		tmp -> rchild.reset($3);
+		tmp -> op = EQUAL_TYPE;
+		$$ = tmp;
+	}
+	| expression UNEQUAL expr{
+		binary_expr * tmp = new binary_expr();
+		tmp -> lchild.reset($1);
+		tmp -> rchild.reset($3);
+		tmp -> op = UNEQUAL_TYPE;
+		$$ = tmp;
+	}
+	| expr{
+		$$ = $1;
+	}
 	;
 
-stmt: INTEGER COLON non_label_stmt | non_label_stmt
-
-non_label_stmt:
-	assign_stmt
+expr: expr PLUS term {
+		binary_expr * tmp = new binary_expr();
+		tmp -> lchild.reset($1);
+		tmp -> rchild.reset($3);
+		tmp -> op = PLUS_TYPE;
+		$$ = tmp;
+	}
+	| expr MINUS term{
+		binary_expr * tmp = new binary_expr();
+		tmp -> lchild.reset($1);
+		tmp -> rchild.reset($3);
+		tmp -> op = MINUS_TYPE;
+		$$ = tmp;
+	}
+	| term{
+		$$ = $1;
+	}
 	;
 
-assign_stmt: ID ASSIGN expression
-	| ID LB expression RB ASSIGN expression
-	| ID DOT ID ASSIGN expression
-
-expression: expression GE expr
-	| expression GT expr
-	| expression LE expr
-	| expression LT expr
-	| expression EQUAL expr
-	| expression UNEQUAL expr
-	| expr
-	;
-
-expr: expr PLUS term 
-	| expr MINUS term
-	| term
-	;
-
-term: term MUL factor
-	| term DIV factor
-	| term MOD factor
+term: term MUL factor{
+		binary_expr * tmp = new binary_expr();
+		tmp -> lchild.reset($1);
+		tmp -> rchild.reset($3);
+		tmp -> op = MUL_TYPE;
+		$$ = tmp;
+	}
+	| term DIV factor{
+		binary_expr * tmp = new binary_expr();
+		tmp -> lchild.reset($1);
+		tmp -> rchild.reset($3);
+		tmp -> op = DIV_TYPE;
+		$$ = tmp;
+	}
+	| term MOD factor{
+		binary_expr * tmp = new binary_expr();
+		tmp -> lchild.reset($1);
+		tmp -> rchild.reset($3);
+		tmp -> op = MOD_TYPE;
+		$$ = tmp;
+	}
 	| term AND factor{
-
+		binary_expr * tmp = new binary_expr();
+		tmp -> lchild.reset($1);
+		tmp -> rchild.reset($3);
+		tmp -> op = AND_TYPE;
+		$$ = tmp;
 	}
 	| factor{
 		$$ = $1;
@@ -287,17 +360,87 @@ term: term MUL factor
 
 factor: ID 
 	| ID LP arg_list RP 
-	| const_value{
-		$$ = strdup(("ldc " + value_set_to_str($1 -> first, $1 -> second)).c_str());
-	}
 	| LP expression RP
-	| NOT factor
-	| MINUS factor
-	| ID LB expression RB
-	| ID DOT ID
+	| NOT factor{
+		unary_expr * tmp = new unary_expr();
+		tmp -> child.reset($2);
+		tmp -> op = NOT;
+		$$ = tmp;
+	}
+	| MINUS factor{
+		unary_expr * tmp = new unary_expr();
+		tmp -> child.reset($2);
+		tmp -> op = MINUS;
+		$$ = tmp;
+	}
+	| ID LB expression RB{
+
+	}	
+	| ID DOT ID{
+		record_node_value * tmp = new record_node_value();
+		tmp -> id = $1;
+		tmp -> member = $3;
+		$$ = tmp;
+	}
+	|
+	INTEGER{
+		leaf_node_value * tmp = new leaf_node_value();
+		tmp -> type_id = INT_TYPE;
+		tmp -> value._int = $1;
+		$$ = tmp;
+	}	
+	|
+	REAL{
+		leaf_node_value * tmp = new leaf_node_value();
+		tmp -> type_id = REAL_TYPE;
+		tmp -> value._double = $1;
+		$$ = tmp;
+	}
+	;
 
 arg_list: arg_list COMMA expression
 	| expression
+	;
+
+
+
+stmt_list: stmt_list stmt SEMI{
+		vt.push_back($2);
+	}
+	|stmt SEMI{
+		vt.push_back($1);
+	}
+	;
+
+stmt: INTEGER COLON non_label_stmt{
+	} | non_label_stmt{
+	}
+
+non_label_stmt:
+	assign_stmt{
+	}
+	;
+
+assign_stmt: ID ASSIGN expression{
+		normal_assign * tmp = new normal_assign();	
+		tmp -> value.reset($3);
+		tmp -> id = $1;
+		$$ = tmp;
+	}
+	| ID LB expression RB ASSIGN expression{
+		arr_assign * tmp = new arr_assign();
+		tmp -> id = $1;
+		tmp -> index.reset($3);
+		tmp -> value.reset($6);
+		$$ = tmp;
+	}
+	| ID DOT ID ASSIGN expression{
+		record_assign * tmp = new record_assign();
+		tmp -> id = $1;
+		tmp -> member = $3;
+		tmp -> value.reset($5);
+		$$ = tmp;
+	}
 	;
 %%
 void yyerror(char * s){
@@ -307,6 +450,12 @@ void yyerror(char * s){
 int main()
 {
 	printf("%d\n", yyparse());
+	printf("XOR R1, R1, R1\n");
+	var_record::single() -> gencode();
+	for(int i = 0; i < vt.size(); ++i){
+		vt[i] -> gencode();
+		delete vt[i];
+	}
 }
 
 

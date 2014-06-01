@@ -1,8 +1,11 @@
 %{
     #include "const_record.h"
+    #include "type_record.h"
+	#include "var_record.h"
+	#include "stmt.h"
     #include "common.h"
-    #include "y.tab.h"
-
+    #include "expr.h"
+	#include "y.tab.h"
 %}
 
 const "const"
@@ -30,7 +33,7 @@ real [0-9]+"."[0-9]+
 char "'"."'" 
 string "'".*"'" 
 semi ";" 
-program "Program"
+program "program"
 type "type"
 sys_type int|string|real|char
 record "record"
@@ -50,6 +53,8 @@ begin "begin"
 {df} {return DF;}
 {array} {return ARRAY;}
 {var} {return VAR;}
+{plus}  {return PLUS;}
+{minus}  {return MINUS;}
 {lp}  {return LP;}
 {rp}  {return RP;}
 {lb} {return LB;}
@@ -59,8 +64,6 @@ begin "begin"
 {colon}  {return COLON;}
 {mul}	{return MUL;}
 {div} {return DIV;}
-{plus}  {return PLUS;}
-{minus}  {return MINUS;}
 {id} {yylval._str = strdup(yytext);return ID;}
 {ge}  {return GE;}
 {gt}  {return GT;}

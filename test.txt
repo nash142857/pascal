@@ -1,4 +1,4 @@
-Program hello;
+program hello;
 const
 	a = 'a';
 	b = 'sad';
@@ -14,4 +14,8 @@ var
 		a:int;
 		b,d:real;
 	end;
+begin
+	c := 1 + 3 * 4 + 5 - 3;
+	c.d := 1 * 4;
+end
 .	

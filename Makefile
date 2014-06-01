@@ -9,8 +9,8 @@ lex.yy.o:lex.yy.c y.tab.h
 	$(CC) -c lex.yy.c
 y.tab.o:y.tab.c
 	$(CC) -c y.tab.c
-y.tab.c y.tab.h:yacc.y
-	$(YACC) -d yacc.y
+y.tab.c y.tab.h:parse.y
+	$(YACC) -d parse.y
 lex.yy.c:token.l
 	$(LEX) token.l
 clean:

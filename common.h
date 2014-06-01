@@ -8,6 +8,21 @@
 #include <utility>
 #include <iostream>
 using namespace std;
+
+#define MUL_TYPE 3265
+#define DIV_TYPE 3266
+#define PLUS_TYPE 3267
+#define MINUS_TYPE 3268
+#define GE_TYPE 3270
+#define GT_TYPE 3271
+#define LE_TYPE 3272
+#define LT_TYPE 3273
+#define EQUAL_TYPE 3274
+#define MOD_TYPE 3292
+#define UNEQUAL_TYPE 3293
+#define NOT_TYPE 3295
+#define AND_TYPE 3296
+
 inline double atof(const char * str){
 	int l = strlen(str);
 	double total = 0;
@@ -18,6 +33,7 @@ inline double atof(const char * str){
 		else{
 			total = total * 10 + *str - '0';
 		}
+
 		if(shift >= 0)	
 			++shift;
 		++str; 
