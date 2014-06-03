@@ -7,6 +7,8 @@
 #include <map>
 #include <utility>
 #include <iostream>
+#include <deque>
+#include <stack>
 using namespace std;
 
 #define MUL_TYPE 3265

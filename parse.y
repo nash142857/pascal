@@ -1,17 +1,18 @@
 %{
 	void yyerror(char * s);
 	extern int yylex();
+	#include "common.h"
 	#include "const_record.h"
 	#include "type_record.h"
 	#include "var_record.h"
 	#include "stmt.h"
 	#include "expr.h"
 	#include "type_value.h"
+	#include "routine.h"
+	#include "enviroment.h"
 	#include <stdio.h>
 	#include <stdlib.h>
 	#include <ctype.h>	
-	#include "common.h"
-	vector <base_stmt *> vt;
 %}
 
 %union{
@@ -25,9 +26,22 @@
 	vector < pair <string, type_ptr> > * _field;
 	base_expr * _expr;
 	base_stmt * _stmt;
+	int _direction;
+	case_expr_list * _case_list;
+	case_expr * _case_expr;
+	stmt_list * _stmt_list;
+	routine * _routine;
+	const_record * _c_r;
+	var_record * _v_r;
+	type_record * _t_r;
+	routine_head * _r_h;
+	routine_record * _r_r;
+	procedure * _procedure;
+	pair <vector <string>, type_ptr> * _para_type_list
+	vector < pair <vector <string>, type_ptr> > * _para_decl_list
 }
 
-%token  LP RP LB RB DOT COMMA COLON MUL DIV PLUS MINUS ID GE GT LE LT EQUAL ASSIGN INTEGER REAL CHAR STRING CONST SEMI VAR PROGRAM TYPE SYS_TYPE RECORD DF ARRAY BP END BEGINN MOD UNEQUAL DR NOT AND 
+%token  LP RP LB RB DOT COMMA COLON MUL DIV PLUS MINUS ID GE GT LE LT EQUAL ASSIGN INTEGER REAL CHAR STRING CONST SEMI VAR PROGRAM TYPE SYS_TYPE RECORD DF ARRAY BP END BEGINN MOD UNEQUAL DR NOT AND CASEE IFF DOO TO DOWNTO UNTIL FOR WHILE ELSEE OF REPEAT GOTO THEN PROCEDURE 
 
 %type <_str> ID
 %type <_tuple> const_value
@@ -43,7 +57,6 @@
 %type <_field> field_decl
 %type <_field> field_decl_list
 %type <_vt> name_list
-%type <_field> var_decl
 %type <_expr> term
 %type <_expr> factor
 %type <_expr> expr
@@ -51,28 +64,76 @@
 %type <_stmt> assign_stmt
 %type <_stmt> non_label_stmt
 %type <_stmt> stmt
+%type <_stmt> else_clause
+%type <_stmt> if_stmt
+%type <_stmt> for_stmt
+%type <_stmt> while_stmt
+%type <_stmt> goto_stmt
+%type <_stmt> repeat_stmt
+%type <_stmt> case_stmt
+%type <_direction> direction
+%type <_stmt_list> stmt_list
+%type <_case_list> case_expr_list
+%type <_case_expr> case_expr
+%type <_c_r> const_part
+%type <_c_r> const_expr_list
+%type <_t_r> type_decl_list
+%type <_t_r> type_part
+%type <_v_r> var_decl_list
+%type <_v_r> var_part
+%type <_stmt_list> routine_body
+%type <_r_h> routine_head
+%type <_routine> routine
+%type <_r_r> routine_part
+%type <_vt> var_para_list
+%type <_vt> val_para_list
+%type <_routine> sub_routine
+%type <_para_type_list> para_type_list
+%type <__para_decl_list> para_decl_list
+%type <_procedure_decl> procedure_decl
+
 %%
-program : program_head routine DOT
-program_head: PROGRAM ID SEMI
-routine: routine_head routine_body
-routine_head: const_part type_part var_part 
-sub_routine: routine_head routine_body
+program : PROGRAM ID SEMI routine DOT{
+	$4 -> name = $2;
+}
+routine: routine_head routine_body{
+	$$ = new routine();
+	$$ -> header.reset($1);
+	$$ -> stmt_vt.reset($2);
+}
+routine_head: const_part{
+	$$ = new routine_head();
+	$$ -> c_r.reset($1);
+	enviroment::single() -> insert($$);
+	} type_part {
+	$$ -> t_r.reset($3);
+	}var_part {
+	$$ -> v_r.reset($5);
+	}
+	routine_part{
+	$$ -> r_r.reset($7);
+	}
+;
+sub_routine: routine_head routine_body{
+		$$ = new routine();
+		$$ -> header.reset($1);
+		$$ -> stmt_vt.reset($2);
+		enviroment::single() -> pop();
+	}
 
 const_part : CONST  const_expr_list 
 		{
-			const_record::singleton() -> debug();
+			$$ = $2;
 		}
 		|
 		;
 const_expr_list: const_expr_list  ID EQUAL const_value SEMI {
-		auto c_r = const_record::singleton();
-		vector <string> tmp;
-		c_r -> insert($2, $4 -> first, tmp, $4 -> second);
+		$1 -> insert($2, $4 -> first, $4 -> second);
+		$$ = $1;
 	}
 	| ID EQUAL const_value SEMI {
-		auto c_r = const_record::singleton();
-		vector <string> tmp;
-		c_r -> insert($1, $3 -> first, tmp, $3 -> second);
+		$$ = new const_record();
+		$$ -> insert($1, $3 -> first, $3 -> second);
 	}
 	;
 const_value: INTEGER {
@@ -108,7 +169,9 @@ const_value: INTEGER {
 		$$ -> second = value;
 	}
 	;
-type_part: TYPE type_decl_list 
+type_part: TYPE type_decl_list{
+		$$ = $2;
+	}
 	|
 	;
 name_list: name_list COLON ID {
@@ -120,12 +183,15 @@ name_list: name_list COLON ID {
 		$$ -> push_back($1);
 	}
 	;
-type_decl_list : type_decl_list type_definition 
-	| type_definition
-	;
-type_definition : ID EQUAL type_decl SEMI{
+type_decl_list : type_decl_list ID EQUAL type_decl SEMI{
+		shared_ptr <base_type> tmp($4);
+		$1 -> insert($2, tmp);	
+		$$ = $1;
+	}	 
+	| ID EQUAL type_decl SEMI{
+		$$ = new type_record();
 		shared_ptr <base_type> tmp($3);
-		type_record::single() -> insert($1, tmp);	
+		$$ -> insert($1, tmp);	
 	}
 	;
 type_decl: simple_type_decl {
@@ -240,23 +306,38 @@ simple_type_decl : SYS_TYPE
 
 
 
-var_part : VAR  var_decl_list 
+var_part : VAR  var_decl_list {
+		$$ = $2;
+	}
 	| 
 	;
-var_decl_list : var_decl_list var_decl 
-	| var_decl
-	;
-var_decl: name_list COMMA type_decl SEMI{
-		for(auto i = $1 -> begin(); i != $1 -> end(); ++i){
+var_decl_list : var_decl_list name_list COMMA type_decl SEMI{
+	for(auto i = $2 -> begin(); i != $2 -> end(); ++i){
+			type_ptr tmp($4);
+			if(!$1 -> insert(*i, tmp)){
+				yyerror("var_decl error");
+			} 
+		}	
+	$$ = $1;
+	}
+	| name_list COMMA type_decl SEMI{
+		$$ = new var_record();
+	for(auto i = $1 -> begin(); i != $1 -> end(); ++i){
 			type_ptr tmp($3);
-			if(!var_record::single() -> insert(*i, tmp)){
+			if(!$$ -> insert(*i, tmp)){
 				yyerror("var_decl error");
 			} 
 		}	
 	}
 	;
 
-routine_body: BEGINN stmt_list END
+routine_body: BEGINN stmt_list END{
+		$$ = $2;
+	}
+	;
+
+expression_list : expression_list COMMA expression
+	| expression
 	;
 
 expression: expression GE expr{
@@ -358,7 +439,11 @@ term: term MUL factor{
 	}
 	;
 
-factor: ID 
+factor: ID {
+		id_node_value * tmp = new id_node_value();
+		tmp -> id = $1;
+		$$ = tmp;
+	}
 	| ID LP arg_list RP 
 	| LP expression RP
 	| NOT factor{
@@ -384,6 +469,7 @@ factor: ID
 	}
 	|
 	INTEGER{
+		puts("fuckcy");
 		leaf_node_value * tmp = new leaf_node_value();
 		tmp -> type_id = INT_TYPE;
 		tmp -> value._int = $1;
@@ -405,10 +491,14 @@ arg_list: arg_list COMMA expression
 
 
 stmt_list: stmt_list stmt SEMI{
-		vt.push_back($2);
+		shared_ptr<base_stmt> tmp($2);
+		$1 -> vt.push_back(tmp);
+		$$ = $1;
 	}
 	|stmt SEMI{
-		vt.push_back($1);
+		$$ = new stmt_list();
+		shared_ptr<base_stmt> tmp($1);
+		$$ -> vt.push_back(tmp);
 	}
 	;
 
@@ -418,6 +508,23 @@ stmt: INTEGER COLON non_label_stmt{
 
 non_label_stmt:
 	assign_stmt{
+	}
+	| if_stmt{
+
+	}
+	| repeat_stmt{
+	}
+	| for_stmt{
+
+	}
+	| while_stmt{
+
+	}
+	| case_stmt{
+
+	}
+	| goto_stmt{
+
 	}
 	;
 
@@ -442,6 +549,133 @@ assign_stmt: ID ASSIGN expression{
 		$$ = tmp;
 	}
 	;
+if_stmt : IFF expression THEN stmt else_clause{
+		if_stmt * tmp = new if_stmt();
+		tmp -> judge.reset($2);
+		tmp -> lchild.reset($4);
+		tmp -> rchild.reset($5);
+		$$ = tmp;
+	}
+		;
+else_clause : ELSEE stmt{
+		$$ = $2;
+	}
+		|{
+		 $$ = nullptr;
+		}
+		;
+
+repeat_stmt : REPEAT stmt_list UNTIL expression{
+		repeat_stmt * tmp = new repeat_stmt();
+		tmp -> stmt_vt.reset($2);
+		tmp -> judge.reset($4);
+		$$ = tmp;
+	}
+		;
+
+while_stmt : WHILE expression DOO stmt{
+		while_stmt * tmp = new while_stmt();
+		tmp -> judge.reset($2);
+		tmp -> stmt.reset($4);
+		$$ = tmp;
+	};
+
+for_stmt : FOR ID ASSIGN expression direction expression DOO stmt {
+		for_stmt * tmp = new for_stmt();
+		tmp -> id = $2;
+		tmp -> end.reset($6);
+		tmp -> start.reset($4);
+		tmp -> dic = $5;
+		$$ = tmp;
+	}
+		;
+
+direction : TO{
+			$$ = 0;
+		}
+		| DOWNTO{
+			$$ = 1;
+		}
+		;
+
+case_stmt : CASEE expression OF case_expr_list 
+		END{
+			case_stmt * tmp = new case_stmt();
+			tmp -> expr.reset($2);
+			tmp -> case_list.reset($4);
+		}
+		;
+case_expr_list : case_expr_list  case_expr{
+		shared_ptr <case_expr> tmp($2);
+		$1 -> case_vt.push_back(tmp);
+		$$ = $1;
+	}
+		| case_expr{
+			shared_ptr <case_expr> tmp($1);
+			$$ = new case_expr_list();
+			$$ -> case_vt.push_back(tmp);
+		}
+		;
+
+case_expr : const_value
+ COLON stmt SEMI{	
+		case_expr_const * tmp = new case_expr_const();
+		tmp -> value.reset($1);
+		tmp -> stmt.reset($3);
+	}
+		| ID COLON stmt SEMI{
+			case_expr_id * tmp = new case_expr_id();
+			tmp -> id = $1;
+			tmp -> stmt.reset($3);
+		}
+		;
+
+goto_stmt : GOTO INTEGER{
+		goto_stmt * tmp = new goto_stmt();
+		tmp -> addr = $2;
+		$$ = tmp;
+	}
+	;
+routine_part : routine_part procedure_decl
+		| 
+		;
+procedure_decl : PROCEDURE ID  LP para_decl_list RP SEMI sub_routine SEMI{
+		$$ = new procedure();
+		$$ -> 
+	}
+		;
+para_decl_list : para_decl_list  SEMI para_type_list {
+			$1 -> push_back($3);
+			$$ = $1;
+	}
+		| para_type_list{
+			$$ = new vector < pair <vector <string>, type_ptr> > ();
+			$$ -> push_back($1);
+		}
+		;
+
+para_type_list : var_para_list COMMA  simple_type_decl{
+			$$ = new pair <vector <string>, type_ptr>();
+			$$ -> first = *$1;
+			$$ -> second.reset($3);
+		}
+		| val_para_list COMMA simple_type_decl{
+			$$ = new pair <vector <string>, type_ptr>();
+			$$ -> first = *$1;
+			$$ -> second.reset($3);
+		}
+		;
+
+var_para_list : VAR name_list{
+		$$ = $2;		
+	}
+		;
+
+val_para_list : name_list{
+		$$ = $1;
+	}
+		;
+
 %%
 void yyerror(char * s){
 	printf("%s\n", s);
@@ -451,11 +685,6 @@ int main()
 {
 	printf("%d\n", yyparse());
 	printf("XOR R1, R1, R1\n");
-	var_record::single() -> gencode();
-	for(int i = 0; i < vt.size(); ++i){
-		vt[i] -> gencode();
-		delete vt[i];
-	}
 }
 
 

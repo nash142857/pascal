@@ -5,7 +5,8 @@
 	#include "stmt.h"
     #include "common.h"
     #include "expr.h"
-	#include "y.tab.h"
+    #include "routine.h"
+    #include "y.tab.h"
 %}
 
 const "const"
@@ -41,12 +42,40 @@ end "end"
 array "array"
 df "of"
 begin "begin"
+casee "case"
+iff "if"
+doo "do"
+to "to"
+downto "downto"
+until "until"
+for "for"
+while "while"
+elsee "else"
+repeat "repeat"
+of "of"
+goto "goto"
+then "then"
+procedure "procedure"
 %%
 
 {const}  {return CONST;}
 {program} {return PROGRAM;}
 {sys_type} {yylval._str = strdup(yytext);return SYS_TYPE;}
 {record} {return RECORD;}
+{casee} {return CASEE;}
+{iff} {return IFF;}
+{doo} {return DOO;}
+{elsee} {return ELSEE;}
+{procedure} {return PROCEDURE;}
+{of} {return OF;}
+{repeat} {return REPEAT;}
+{goto} {return GOTO;}
+{then} {return THEN;}
+{to} {return TO;}
+{while} {return WHILE;}
+{for} {return FOR;}
+{until} {return UNTIL;}
+{downto} {return DOWNTO;}
 {end} {return END;}
 {begin} {return BEGINN;}
 {type} {return TYPE;}
